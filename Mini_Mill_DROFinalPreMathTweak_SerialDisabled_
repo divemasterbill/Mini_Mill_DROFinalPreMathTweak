@@ -1,0 +1,149 @@
+/*  Mini Mill Digital Readout Display
+/   3 Axis 7 Segment LED Displays
+/   6 Digit Modules TM1637
+*/
+
+/* Change these pin numbers to the pins connected to your encoder.
+   Best Performance: both pins have interrupt capability
+   Good Performance: only the first pin has interrupt capability
+   Low Performance:  neither pin has interrupt capability
+*/
+#include <Arduino.h>
+#include <Encoder.h>
+#include <TM1637TinyDisplay6.h>
+Encoder axisX(18, 19);
+Encoder axisY(20, 21);
+Encoder axisZ(2, 3);
+
+//   avoid using pins with LEDs attached
+
+#define buttonPinX 4  // Button is connected to digital pin 4
+#define buttonPinY 5  // Button is connected to digital pin 5
+#define buttonPinZ 6  // Button is connected to digital pin 6
+
+long positionX = 1; // was -999
+long positionY = 1; // was -999
+long positionZ = 1; // was -999
+
+long newX;
+long newY;
+long newZ;
+
+float XDistance = 0.0000;
+float YDistance = 0.0000;
+float ZDistance = 0.0000;
+
+int buttonHoldValue = 2000;
+#define CLKX 9
+#define DIOX 8
+
+#define CLKY 11
+#define DIOY 10
+
+#define CLKZ 13
+#define DIOZ 12
+
+TM1637TinyDisplay6 displayX(CLKX, DIOX);
+TM1637TinyDisplay6 displayY(CLKY, DIOY);
+TM1637TinyDisplay6 displayZ(CLKZ, DIOZ);
+
+void setup() {
+  pinMode(buttonPinX, INPUT_PULLUP);
+  pinMode(buttonPinY, INPUT_PULLUP);
+  pinMode(buttonPinZ, INPUT_PULLUP);
+  //Serial.begin(9600);   // Standard USB port (Pins 0 & 1)
+   // Serial.println("Three Axis Mill Display with Zeroing:");
+   displayX.begin();
+   displayY.begin();
+   displayZ.begin();
+}
+void updateScreen() {
+  /*
+  Serial.print("X = ");
+  Serial.print(newX);
+  Serial.print(", Y = ");
+  Serial.print(newY);
+  Serial.print(", Z = ");
+  Serial.print(newZ);
+  Serial.println();
+  Serial.print("X = ");
+  Serial.print(XDistance, 3);
+  Serial.print(", Y = ");
+  Serial.print(YDistance, 3);
+  Serial.print(", Z = ");
+  Serial.print(ZDistance, 3);
+  Serial.println();
+*/
+  displayX.showNumber(XDistance,4);
+  displayY.showNumber(YDistance,4);
+  displayZ.showNumber(ZDistance,4);
+}
+
+bool confirmZeroPressAndHold() {
+  if (digitalRead(4) == 0 || digitalRead(5) == 0 || digitalRead(6) == 0)
+    return;
+}
+
+void calculateImperial() {
+  XDistance = .004 * positionX;
+  YDistance = .004 * positionY;
+  ZDistance = .004 * positionZ;
+  updateScreen();
+  return;
+}
+
+void loop() {
+
+  if (digitalRead(4) == 0) 
+  {
+    long int buttonPressStart = millis();
+    while (digitalRead(4) == 0) 
+    {
+      if (millis() - buttonPressStart > buttonHoldValue) {
+        newX = axisX.readAndReset();
+        XDistance = 0;
+        updateScreen();
+        break;
+      }
+    }
+    //Serial.print("false button press");
+  }
+  if (digitalRead(5) == 0) 
+  {
+    long int buttonPressStart = millis();
+    while (digitalRead(5) == 0) 
+    {
+      if (millis() - buttonPressStart > buttonHoldValue) {
+        newY = axisY.readAndReset();
+        YDistance = 0;
+        updateScreen();
+        break;
+      }
+    }
+    //Serial.print("false button press");
+  }
+  if (digitalRead(6) == 0) 
+  {
+    long int buttonPressStart = millis();
+    while (digitalRead(6) == 0) 
+    {
+      if (millis() - buttonPressStart > buttonHoldValue) {
+        newZ = axisZ.readAndReset();
+        ZDistance = 0;
+        updateScreen();
+        break;
+      }
+    }
+    //Serial.print("false button press");
+  }
+if (newX != positionX || newY != positionY || newZ != positionZ) {
+  positionX = newX;
+  positionY = newY;
+  positionZ = newZ;
+  updateScreen();
+  calculateImperial();
+}
+newX = axisX.read();
+newY = axisY.read();
+newZ = axisZ.read();
+}
